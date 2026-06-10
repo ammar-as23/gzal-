@@ -1,66 +1,38 @@
 // ================================================
-// 🌐 إعدادات Supabase (نفس إعدادات الأدمن)
+// 🌐 إعدادات Supabase
 // ================================================
 const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
 // تهيئة عميل Supabase
-let supabaseDb;
-try {
-    supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase initialized');
-} catch (error) {
-    console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها بشكل صحيح!', error);
-}
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ================================================
-// 📦 إدارة المنتجات (Products)
+// 📦 إدارة المنتجات (ديناميكية من Supabase فقط)
 // ================================================
 let products = [];
 let cart = [];
 
-// جلب المنتجات من قاعدة البيانات
 async function loadProducts() {
-    if (!supabaseDb) {
-        console.error('❌ Supabase not initialized');
-        fallbackLoadProducts();
-        renderStoreProducts();
-        return;
-    }
-    
     try {
-        const { data, error } = await supabaseDb
+        const { data, error } = await supabase
             .from('products')
             .select('*')
-            .order('price', { ascending: true });
-
+            .order('price', { ascending: true }); // الأرخص أولاً
+            
         if (error) throw error;
-
+        
         if (data && data.length > 0) {
             products = data;
-            localStorage.setItem('store_products', JSON.stringify(products));
         } else {
-            fallbackLoadProducts();
+            // إذا كانت قاعدة البيانات فارغة، نعرض رسالة
+            products = [];
         }
         renderStoreProducts();
     } catch (error) {
-        console.error('❌ فشل تحميل المنتجات:', error);
-        fallbackLoadProducts();
+        console.error('❌ فشل تحميل المنتجات من Supabase:', error);
+        products = [];
         renderStoreProducts();
-    }
-}
-
-function fallbackLoadProducts() {
-    const stored = localStorage.getItem('store_products');
-    if (stored) {
-        products = JSON.parse(stored);
-    } else {
-        products = [
-            { id: 1, name: "Gazal 5050 Super", oldPrice: 399, price: 199, image: "https://i.postimg.cc/9QQ2PFrd/photo-2026-06-09-14-24-06.jpg", description: "الجهاز الأكثر مبيعاً والأرخص! دقة 4K.", inStock: true, hasVip: true },
-            { id: 2, name: "Gazal 3030 Forever Super", oldPrice: 450, price: 330, image: "https://i.postimg.cc/66PCxyNR/photo-2026-06-09-14-23-36.jpg", description: "فائق السرعة، 2GB رام، 16GB فلاش.", inStock: true, hasVip: true },
-            { id: 3, name: "Gazal Linux Turbo 4K 5G", oldPrice: 599, price: 499, image: "https://i.postimg.cc/m2cNP7Sk/photo-2026-06-09-14-23-23.jpg", description: "لينكس، 5G، دقة 4K فائقة.", inStock: true, hasVip: true },
-            { id: 4, name: "Gazal 8080 Super", oldPrice: 499, price: 399, image: "https://i.postimg.cc/SQnD90SQ/Whats-App-Image-2026-06-09-at-11-44-17-PM-(1).jpg", description: "فائق الأداء، أحدث إصدار.", inStock: true, hasVip: true }
-        ];
     }
 }
 
@@ -69,7 +41,7 @@ function renderStoreProducts() {
     if (!container) return;
     
     if (products.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;">📭 جاري تحميل المنتجات...</div>';
+        container.innerHTML = '<div style="text-align:center;padding:40px;">📭 لا توجد منتجات حالياً. تواصل مع الإدارة لإضافة منتجات.</div>';
         return;
     }
     
@@ -225,25 +197,21 @@ function renderCart() {
 // ================================================
 // 💾 حفظ الطلب في Supabase
 // ================================================
-async function saveOrderToDatabase(orderData) {
-    if (!supabaseDb) {
-        console.error('❌ Supabase not initialized');
-        return false;
-    }
-    
-    const newOrder = {
-        timestamp: new Date().toLocaleString('ar-SA'),
-        name: orderData.name,
-        mobile: orderData.mobile,
-        city: orderData.city,
-        items: orderData.items,
-        total: orderData.total,
-        notes: orderData.notes || '',
-        status: 'pending'
-    };
-    
+async function saveOrder(orderData) {
     try {
-        const { error } = await supabaseDb
+        const newOrder = {
+            id: Date.now(),
+            timestamp: new Date().toLocaleString('ar-SA'),
+            name: orderData.name,
+            mobile: orderData.mobile,
+            city: orderData.city,
+            items: orderData.items,
+            total: orderData.total,
+            notes: orderData.notes || '',
+            status: 'pending'
+        };
+        
+        const { error } = await supabase
             .from('orders')
             .insert([newOrder]);
             
@@ -295,7 +263,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 notes: notes
             };
             
-            const success = await saveOrderToDatabase(orderData);
+            const success = await saveOrder(orderData);
             
             if (success) {
                 const successMsg = document.getElementById('successMessage');
