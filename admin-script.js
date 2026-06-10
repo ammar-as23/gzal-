@@ -9,7 +9,7 @@ const ADMIN_PASSWORD = "admin123";
 const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تهيئة عميل Supabase بشكل آمن (كي لا يعطل تسجيل الدخول إذا فشل)
+// تهيئة عميل Supabase بشكل آمن
 let supabase;
 try {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -76,7 +76,6 @@ async function sendEmailNotification(orderData, action) {
 // ================================================
 let products = [];
 
-// قراءة المنتجات من قاعدة البيانات
 async function loadProductsData() {
     try {
         const { data, error } = await supabase
@@ -93,7 +92,6 @@ async function loadProductsData() {
         renderProductsList();
     } catch (error) {
         console.error('❌ فشل تحميل المنتجات:', error);
-        alert('حدث خطأ أثناء جلب المنتجات من السيرفر.');
     }
 }
 
@@ -133,17 +131,13 @@ function renderProductsList() {
     container.innerHTML = html;
 }
 
-// تعديل حالة المخزون في قاعدة البيانات
 async function toggleStock(productId) {
     const product = products.find(p => p.id === productId);
     if (product) {
         const newStockStatus = !product.inStock;
-        
-        // التحديث في الواجهة فوراً لتجربة مستخدم سريعة
         product.inStock = newStockStatus;
         renderProductsList();
         
-        // التحديث في السيرفر
         try {
             const { error } = await supabase
                 .from('products')
@@ -153,14 +147,12 @@ async function toggleStock(productId) {
             if (error) throw error;
         } catch (error) {
             console.error('❌ فشل تحديث المخزون:', error);
-            // إرجاع الحالة القديمة إذا فشل السيرفر
             product.inStock = !newStockStatus;
             renderProductsList();
         }
     }
 }
 
-// حذف منتج من قاعدة البيانات
 async function deleteProduct(productId) {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
         try {
@@ -171,7 +163,6 @@ async function deleteProduct(productId) {
                 
             if (error) throw error;
             
-            // تحديث الواجهة بعد نجاح الحذف
             products = products.filter(p => p.id !== productId);
             renderProductsList();
             updateProductsStats();
@@ -182,7 +173,6 @@ async function deleteProduct(productId) {
     }
 }
 
-// إضافة منتج جديد لقاعدة البيانات
 async function addNewProduct() {
     const name = document.getElementById('newProductName').value.trim();
     const oldPrice = parseInt(document.getElementById('newOldPrice').value);
@@ -213,12 +203,10 @@ async function addNewProduct() {
             
         if (error) throw error;
         
-        // تحديث الواجهة
         products.push(newProduct);
         renderProductsList();
         updateProductsStats();
         
-        // تصفير الحقول
         document.getElementById('newProductName').value = '';
         document.getElementById('newOldPrice').value = '';
         document.getElementById('newPrice').value = '';
@@ -240,7 +228,6 @@ async function addNewProduct() {
 let orders = [];
 let lastOrderCount = 0;
 
-// قراءة الطلبات من قاعدة البيانات
 async function loadOrdersData() {
     try {
         const { data, error } = await supabase
@@ -326,7 +313,6 @@ function renderOrdersList() {
     tbody.innerHTML = html;
 }
 
-// تحديث حالة الطلب في قاعدة البيانات
 async function updateOrderStatus(orderId, newStatus) {
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -340,4 +326,74 @@ async function updateOrderStatus(orderId, newStatus) {
                 
             if (error) throw error;
             
-            // التحديث في الوا
+            order.status = newStatus;
+            renderOrdersList();
+            updateOrdersStats();
+            
+            if (oldStatus === 'pending' && newStatus !== 'pending') {
+                await sendEmailNotification(order, newStatus);
+                alert(`✅ تم ${newStatus === 'approved' ? 'قبول' : 'رفض'} الطلب وإرسال إشعار إلى البريد الإلكتروني`);
+            }
+            
+        } catch (error) {
+            console.error('❌ فشل تحديث حالة الطلب:', error);
+            alert('حدث خطأ أثناء تحديث حالة الطلب.');
+        }
+    }
+}
+
+async function deleteOrder(orderId) {
+    if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .delete()
+                .eq('id', orderId);
+                
+            if (error) throw error;
+            
+            orders = orders.filter(o => o.id !== orderId);
+            renderOrdersList();
+            updateOrdersStats();
+            
+        } catch (error) {
+            console.error('❌ فشل حذف الطلب:', error);
+            alert('حدث خطأ أثناء محاولة حذف الطلب.');
+        }
+    }
+}
+
+// ================================================
+// 🔄 علامات التبويب والتحديث التلقائي
+// ================================================
+function showTab(tabName) {
+    document.getElementById('productsTab').classList.remove('active');
+    document.getElementById('addProductTab').classList.remove('active');
+    document.getElementById('ordersTab').classList.remove('active');
+    
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (tabName === 'products') {
+        document.getElementById('productsTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:first-child').classList.add('active');
+        renderProductsList();
+    } else if (tabName === 'add-product') {
+        document.getElementById('addProductTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:nth-child(2)').classList.add('active');
+    } else if (tabName === 'orders') {
+        document.getElementById('ordersTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:nth-child(3)').classList.add('active');
+        renderOrdersList();
+    }
+}
+
+function loadAllData() {
+    loadProductsData();
+    loadOrdersData();
+}
+
+setInterval(() => {
+    if (document.getElementById('adminPanel') && document.getElementById('adminPanel').style.display === 'block') {
+        loadOrdersData();
+    }
+}, 10000);
