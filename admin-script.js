@@ -1,18 +1,19 @@
 // ================================================
 // 🌐 إعدادات Supabase
 // ================================================
-/*
-const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
+
+
 
 // تهيئة عميل Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-*/
+// const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ================================================
 // 🔐 كلمة السر
 // ================================================
 const ADMIN_PASSWORD = "admin123";
 
+const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 // ================================================
 // 📧 إعدادات EmailJS (غيّر هذه القيم بعد التسجيل في EmailJS)
 // ================================================
