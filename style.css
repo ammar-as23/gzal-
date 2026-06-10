@@ -569,3 +569,20 @@ body {
     padding: 20px;
     font-size: 13px;
 }
+
+.site-logo {
+    width: 60px; /* يمكنك التحكم في حجم اللوجو من هنا */
+    height: auto;
+    vertical-align: middle;
+    margin-left: 10px; /* مسافة بين اللوجو واسم الموقع */
+}
+
+/* تعديل لتنسيق اللوجو مع النص */
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 34px;
+    font-weight: 800;
+    color: #FFFFFF;
+}
