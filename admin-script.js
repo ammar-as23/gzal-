@@ -9,13 +9,8 @@ const ADMIN_PASSWORD = "admin123";
 const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تهيئة عميل Supabase بشكل آمن
-let supabase;
-try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-} catch (error) {
-    console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها في ملف HTML!', error);
-}
+// قمنا بتغيير الاسم إلى supabaseDb لتجنب أي تعارض مع المكتبة
+const supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ================================================
 // 📧 إعدادات EmailJS
@@ -25,12 +20,8 @@ const EMAILJS_SERVICE_ID = "service_bo95msl";
 const EMAILJS_TEMPLATE_ID = "template_cl5kubq";  
 const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";       
 
-// تهيئة EmailJS بشكل آمن
-try {
-    emailjs.init(EMAILJS_PUBLIC_KEY);
-} catch (error) {
-    console.error('❌ تنبيه: مكتبة EmailJS لم يتم تحميلها في ملف HTML!', error);
-}
+// تهيئة EmailJS
+emailjs.init(EMAILJS_PUBLIC_KEY);
 
 // ================================================
 // 🔐 دالة تسجيل الدخول
@@ -78,7 +69,7 @@ let products = [];
 
 async function loadProductsData() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseDb
             .from('products')
             .select('*')
             .order('price', { ascending: true });
@@ -139,7 +130,7 @@ async function toggleStock(productId) {
         renderProductsList();
         
         try {
-            const { error } = await supabase
+            const { error } = await supabaseDb
                 .from('products')
                 .update({ inStock: newStockStatus })
                 .eq('id', productId);
@@ -156,7 +147,7 @@ async function toggleStock(productId) {
 async function deleteProduct(productId) {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
         try {
-            const { error } = await supabase
+            const { error } = await supabaseDb
                 .from('products')
                 .delete()
                 .eq('id', productId);
@@ -197,7 +188,7 @@ async function addNewProduct() {
     };
     
     try {
-        const { error } = await supabase
+        const { error } = await supabaseDb
             .from('products')
             .insert([newProduct]);
             
@@ -230,7 +221,7 @@ let lastOrderCount = 0;
 
 async function loadOrdersData() {
     try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseDb
             .from('orders')
             .select('*')
             .order('id', { ascending: false });
@@ -319,7 +310,7 @@ async function updateOrderStatus(orderId, newStatus) {
         const oldStatus = order.status;
         
         try {
-            const { error } = await supabase
+            const { error } = await supabaseDb
                 .from('orders')
                 .update({ status: newStatus })
                 .eq('id', orderId);
@@ -345,7 +336,7 @@ async function updateOrderStatus(orderId, newStatus) {
 async function deleteOrder(orderId) {
     if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
         try {
-            const { error } = await supabase
+            const { error } = await supabaseDb
                 .from('orders')
                 .delete()
                 .eq('id', orderId);
