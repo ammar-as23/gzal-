@@ -182,26 +182,24 @@ function renderCart() {
 }
 
 // ================================================
-// 📋 إضافة طلب جديد إلى localStorage (ليظهر في الأدمن)
+// 📧 إرسال الطلبات إلى Google Sheets
 // ================================================
-function saveOrderToAdmin(orderData) {
-    let existingOrders = localStorage.getItem('admin_orders');
-    let orders = existingOrders ? JSON.parse(existingOrders) : [];
+async function saveOrderToAdmin(orderData) {
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby539f8QTPy6Gt4PJ2GNnQYcj42SjdIcPDq6eWdMDkYX0X-F3eKcz08FoW9rpeyg9ty/exec';
     
-    const newOrder = {
-        id: Date.now(),
-        date: new Date().toLocaleString('ar-SA'),
-        name: orderData.name,
-        mobile: orderData.mobile,
-        city: orderData.city,
-        items: orderData.items,
-        total: orderData.total,
-        notes: orderData.notes,
-        status: 'pending'
-    };
-    
-    orders.unshift(newOrder);
-    localStorage.setItem('admin_orders', JSON.stringify(orders));
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        });
+        console.log('✅ تم إرسال الطلب إلى Google Sheets');
+    } catch (error) {
+        console.error('❌ فشل إرسال الطلب:', error);
+    }
 }
 
 // ================================================
@@ -244,7 +242,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 notes: notes
             };
             
-            // حفظ الطلب في localStorage ليظهر في صفحة الأدمن
+            // ✅ إرسال الطلب إلى Google Sheets
             saveOrderToAdmin(orderData);
             
             const successMsg = document.getElementById('successMessage');
