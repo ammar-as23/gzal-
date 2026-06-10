@@ -1,5 +1,5 @@
 // ================================================
-// 🌐 إعدادات Supabase
+// 🌐 إعدادات Supabase (نفس إعدادات الأدمن)
 // ================================================
 const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
@@ -8,6 +8,7 @@ const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 let supabaseDb;
 try {
     supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase initialized');
 } catch (error) {
     console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها بشكل صحيح!', error);
 }
@@ -20,6 +21,13 @@ let cart = [];
 
 // جلب المنتجات من قاعدة البيانات
 async function loadProducts() {
+    if (!supabaseDb) {
+        console.error('❌ Supabase not initialized');
+        fallbackLoadProducts();
+        renderStoreProducts();
+        return;
+    }
+    
     try {
         const { data, error } = await supabaseDb
             .from('products')
@@ -49,7 +57,9 @@ function fallbackLoadProducts() {
     } else {
         products = [
             { id: 1, name: "Gazal 5050 Super", oldPrice: 399, price: 199, image: "https://i.postimg.cc/9QQ2PFrd/photo-2026-06-09-14-24-06.jpg", description: "الجهاز الأكثر مبيعاً والأرخص! دقة 4K.", inStock: true, hasVip: true },
-            { id: 2, name: "Gazal 3030 Forever Super", oldPrice: 450, price: 330, image: "https://i.postimg.cc/66PCxyNR/photo-2026-06-09-14-23-36.jpg", description: "فائق السرعة، 2GB رام، 16GB فلاش.", inStock: true, hasVip: true }
+            { id: 2, name: "Gazal 3030 Forever Super", oldPrice: 450, price: 330, image: "https://i.postimg.cc/66PCxyNR/photo-2026-06-09-14-23-36.jpg", description: "فائق السرعة، 2GB رام، 16GB فلاش.", inStock: true, hasVip: true },
+            { id: 3, name: "Gazal Linux Turbo 4K 5G", oldPrice: 599, price: 499, image: "https://i.postimg.cc/m2cNP7Sk/photo-2026-06-09-14-23-23.jpg", description: "لينكس، 5G، دقة 4K فائقة.", inStock: true, hasVip: true },
+            { id: 4, name: "Gazal 8080 Super", oldPrice: 499, price: 399, image: "https://i.postimg.cc/SQnD90SQ/Whats-App-Image-2026-06-09-at-11-44-17-PM-(1).jpg", description: "فائق الأداء، أحدث إصدار.", inStock: true, hasVip: true }
         ];
     }
 }
@@ -59,7 +69,7 @@ function renderStoreProducts() {
     if (!container) return;
     
     if (products.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;grid-column: 1 / -1;">📭 جاري تحميل المنتجات...</div>';
+        container.innerHTML = '<div style="text-align:center;padding:40px;">📭 جاري تحميل المنتجات...</div>';
         return;
     }
     
@@ -77,11 +87,19 @@ function renderStoreProducts() {
                 <div class="price">${p.price} <span>ريال</span></div>
                 <div class="vip-option">
                     <div class="vip-title"><i class="fas fa-crown"></i> باقة VIP الذهبية</div>
+                    <ul class="vip-features">
+                        <li>📡 فتح القنوات المشفرة على النايل سات والعرب سات</li>
+                        <li>⚽ فتح bein sport max الناقلة لكأس العالم</li>
+                        <li>🚀 لا يحتاج إنترنت سريع ولا يوجد أي تأخير أو تقطيع</li>
+                        <li>🎬 مشاهدة المباريات بجودة 4K</li>
+                    </ul>
+                    <div class="vip-price">+ 100 ريال</div>
                     <div class="checkbox-container">
                         <label><i class="fas fa-gem"></i> إضافة باقة VIP</label>
                         <input type="checkbox" class="vip${p.id}" onchange="updateDevicePriceInCart(${p.id})">
                     </div>
                 </div>
+                <div class="free-delivery"><i class="fas fa-truck-fast"></i> توصيل مجاني</div>
                 <button class="add-to-cart-btn" onclick="addToCart(${p.id}, '${p.name}', ${p.price})" ${!p.inStock ? 'disabled' : ''}>
                     <i class="fas fa-cart-plus"></i> إضافة إلى السلة
                 </button>
@@ -96,7 +114,10 @@ function renderStoreProducts() {
 // ================================================
 function addToCart(productId, name, basePrice) {
     const product = products.find(p => p.id === productId);
-    if (!product || !product.inStock) return;
+    if (!product || !product.inStock) {
+        alert('⚠️ هذا المنتج غير متوفر حالياً');
+        return;
+    }
     
     const checkbox = document.querySelector(`.vip${productId}`);
     const hasVip = checkbox ? checkbox.checked : false;
@@ -108,8 +129,57 @@ function addToCart(productId, name, basePrice) {
         existingItem.quantity += 1;
         existingItem.price = finalPrice * existingItem.quantity;
     } else {
-        cart.push({ id: productId, name: name, unitPrice: finalPrice, price: finalPrice, quantity: 1, hasVip: hasVip });
+        cart.push({ 
+            id: productId, 
+            name: name, 
+            unitPrice: finalPrice,
+            price: finalPrice, 
+            quantity: 1,
+            hasVip: hasVip 
+        });
     }
+    
+    renderCart();
+}
+
+function removeFromCart(productId, hasVip) {
+    const index = cart.findIndex(item => item.id === productId && item.hasVip === hasVip);
+    if (index !== -1) {
+        if (cart[index].quantity > 1) {
+            cart[index].quantity -= 1;
+            cart[index].price = cart[index].unitPrice * cart[index].quantity;
+        } else {
+            cart.splice(index, 1);
+        }
+    }
+    renderCart();
+}
+
+function removeAllFromCart(productId, hasVip) {
+    cart = cart.filter(item => !(item.id === productId && item.hasVip === hasVip));
+    renderCart();
+}
+
+function updateDevicePriceInCart(productId) {
+    const checkbox = document.querySelector(`.vip${productId}`);
+    if (!checkbox) return;
+    
+    const hasVip = checkbox.checked;
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    const unitPrice = product.price + (hasVip ? 100 : 0);
+    
+    cart.forEach(item => {
+        if (item.id === productId) {
+            const oldHasVip = item.hasVip;
+            if (oldHasVip !== hasVip) {
+                item.hasVip = hasVip;
+                item.unitPrice = unitPrice;
+                item.price = unitPrice * item.quantity;
+            }
+        }
+    });
     renderCart();
 }
 
@@ -119,7 +189,7 @@ function renderCart() {
     if (!cartContainer) return;
     
     if (cart.length === 0) {
-        cartContainer.innerHTML = '<div class="empty-cart">السلة فارغة</div>';
+        cartContainer.innerHTML = '<div class="empty-cart"><i class="fas fa-basket-shopping"></i> السلة فارغة. أضف أجهزة من الأعلى</div>';
         if (totalSpan) totalSpan.innerText = '0';
         return;
     }
@@ -128,25 +198,48 @@ function renderCart() {
     let html = '';
     cart.forEach(item => {
         total += item.price;
-        html += `<div class="cart-item">${item.name} × ${item.quantity} = ${item.price} ريال</div>`;
+        const vipBadge = item.hasVip ? ' + باقة VIP 👑' : '';
+        html += `
+            <div class="cart-item">
+                <div class="cart-item-info">
+                    <div class="cart-item-name">${item.name}${vipBadge}</div>
+                    <div class="cart-item-price">
+                        ${item.unitPrice} ريال × ${item.quantity} = <strong>${item.price} ريال</strong>
+                    </div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="remove-item" onclick="removeFromCart(${item.id}, ${item.hasVip})" style="background:#fef3c7;">
+                        <i class="fas fa-minus"></i> إنقاص
+                    </button>
+                    <button class="remove-item" onclick="removeAllFromCart(${item.id}, ${item.hasVip})">
+                        <i class="fas fa-trash"></i> حذف الكل
+                    </button>
+                </div>
+            </div>
+        `;
     });
     cartContainer.innerHTML = html;
     if (totalSpan) totalSpan.innerText = total;
 }
 
 // ================================================
-// 📋 إرسال الطلب (بدون ID يدوي)
+// 💾 حفظ الطلب في Supabase
 // ================================================
 async function saveOrderToDatabase(orderData) {
-    // نرسل البيانات فقط، وقاعدة البيانات ستتولى إنشاء الـ ID تلقائياً
+    if (!supabaseDb) {
+        console.error('❌ Supabase not initialized');
+        return false;
+    }
+    
     const newOrder = {
+        timestamp: new Date().toLocaleString('ar-SA'),
         name: orderData.name,
         mobile: orderData.mobile,
         city: orderData.city,
         items: orderData.items,
         total: orderData.total,
-        notes: orderData.notes,
-        status: 'pending' 
+        notes: orderData.notes || '',
+        status: 'pending'
     };
     
     try {
@@ -155,41 +248,69 @@ async function saveOrderToDatabase(orderData) {
             .insert([newOrder]);
             
         if (error) throw error;
+        console.log('✅ تم حفظ الطلب في Supabase');
         return true;
     } catch (error) {
-        console.error('❌ حدث خطأ:', error);
+        console.error('❌ فشل حفظ الطلب:', error);
         return false;
     }
 }
 
 // ================================================
-// 📝 معالجة النموذج
+// 📝 معالجة نموذج الطلب
 // ================================================
 document.addEventListener('DOMContentLoaded', function() {
     loadProducts();
+    renderCart();
     
     const orderForm = document.getElementById('orderFormElement');
     if (orderForm) {
         orderForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            if (cart.length === 0) {
+                alert('⚠️ الرجاء إضافة جهاز واحد على الأقل إلى السلة');
+                return;
+            }
+            
+            const fullName = document.getElementById('fullName').value;
+            const mobile = document.getElementById('mobile').value;
+            const city = document.getElementById('city').value;
+            const notes = document.getElementById('notes').value;
+            
+            if (!fullName || !mobile || !city) {
+                alert('⚠️ الرجاء تعبئة جميع الحقول المطلوبة');
+                return;
+            }
+            
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            const itemsText = cart.map(item => `${item.name}${item.hasVip ? ' +VIP' : ''} (${item.unitPrice} ريال) × ${item.quantity}`).join(' | ');
+            
             const orderData = {
-                name: document.getElementById('fullName').value,
-                mobile: document.getElementById('mobile').value,
-                city: document.getElementById('city').value,
-                items: cart.map(i => i.name).join(' | '),
-                total: cart.reduce((s, i) => s + i.price, 0),
-                notes: document.getElementById('notes').value
+                name: fullName,
+                mobile: mobile,
+                city: city,
+                items: itemsText,
+                total: total,
+                notes: notes
             };
             
-            const isSuccess = await saveOrderToDatabase(orderData);
-            if (isSuccess) {
-                alert('✅ تم إرسال الطلب!');
-                orderForm.reset();
+            const success = await saveOrderToDatabase(orderData);
+            
+            if (success) {
+                const successMsg = document.getElementById('successMessage');
+                if (successMsg) {
+                    successMsg.style.display = 'block';
+                    setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
+                }
+                
+                document.getElementById('orderFormElement').reset();
                 cart = [];
                 renderCart();
+                
+                alert('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً.');
             } else {
-                alert('❌ فشل الإرسال.');
+                alert('❌ حدث خطأ في إرسال الطلب. الرجاء المحاولة مرة أخرى.');
             }
         });
     }
