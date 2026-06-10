@@ -1,31 +1,29 @@
 // ================================================
-// 🔐 كلمة السر وإعدادات EmailJS
-// ================================================
-const ADMIN_PASSWORD = "admin123";
-
-// ================================================
-// 📧 إعدادات EmailJS
-// ================================================
-const EMAILJS_PUBLIC_KEY = "mOOnLVPcEPY9R6mY3";
-const EMAILJS_SERVICE_ID = "service_bo95msl";
-const EMAILJS_TEMPLATE_ID = "template_cl5kubq";
-const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";
-
-// ================================================
 // 🌐 إعدادات Supabase
 // ================================================
+/*
 const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
 // تهيئة عميل Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+*/
+// ================================================
+// 🔐 كلمة السر
+// ================================================
+const ADMIN_PASSWORD = "admin123";
 
+// ================================================
+// 📧 إعدادات EmailJS (غيّر هذه القيم بعد التسجيل في EmailJS)
+// ================================================
+// 🔴 قم بالتسجيل في https://www.emailjs.com ثم ضع القيم التالية:
+const EMAILJS_PUBLIC_KEY = "mOOnLVPcEPY9R6mY3";     // 🔴 غير هذا
+const EMAILJS_SERVICE_ID = "service_bo95msl";    // 🔴 غير هذا
+const EMAILJS_TEMPLATE_ID = "template_cl5kubq";  // 🔴 غير هذا
+const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";       // 🔴 بريدك أنت
 // تحميل EmailJS
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
-// ================================================
-// 🔐 تسجيل الدخول
-// ================================================
 function checkLogin() {
     const password = document.getElementById('adminPassword').value;
     if (password === ADMIN_PASSWORD) {
@@ -63,37 +61,11 @@ async function sendEmailNotification(orderData, action) {
 }
 
 // ================================================
-// 📦 إدارة المنتجات (Supabase + LocalStorage)
+// 📦 إدارة المنتجات
 // ================================================
 let products = [];
 
-// تحميل المنتجات من Supabase أولاً، ثم localStorage كـ "طوارئ"
-async function loadProductsData() {
-    try {
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .order('price', { ascending: true });
-            
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-            products = data;
-            saveProductsToLocal(products);
-        } else {
-            // إذا كانت قاعدة البيانات فارغة، استخدم localStorage
-            loadProductsFromLocal();
-        }
-        updateProductsStats();
-        renderProductsList();
-    } catch (error) {
-        console.error('❌ فشل تحميل المنتجات من Supabase:', error);
-        loadProductsFromLocal();
-        renderProductsList();
-    }
-}
-
-function loadProductsFromLocal() {
+function loadProductsData() {
     const stored = localStorage.getItem('store_products');
     if (stored) {
         products = JSON.parse(stored);
@@ -104,42 +76,40 @@ function loadProductsFromLocal() {
             { id: 3, name: "Gazal Linux Turbo 4K 5G", oldPrice: 599, price: 499, image: "https://i.postimg.cc/m2cNP7Sk/photo-2026-06-09-14-23-23.jpg", description: "لينكس، 5G، دقة 4K فائقة.", inStock: true, hasVip: true },
             { id: 4, name: "Gazal 8080 Super", oldPrice: 499, price: 399, image: "https://i.postimg.cc/SQnD90SQ/Whats-App-Image-2026-06-09-at-11-44-17-PM-(1).jpg", description: "فائق الأداء، أحدث إصدار.", inStock: true, hasVip: true }
         ];
-        saveProductsToLocal(products);
+        saveProducts();
     }
+    updateProductsStats();
+    renderProductsList();
 }
 
-function saveProductsToLocal(productsToSave) {
-    localStorage.setItem('store_products', JSON.stringify(productsToSave));
-}
+function saveProducts() {
+    //localStorage.setItem('store_products', JSON.stringify(products));
 
-async function saveProductsToSupabase() {
-    try {
-        // حذف جميع المنتجات القديمة
-        const { error: deleteError } = await supabase
-            .from('products')
-            .delete()
-            .neq('id', 0);
-            
-        if (deleteError) throw deleteError;
-        
-        // إضافة المنتجات الجديدة
-        if (products.length > 0) {
-            const { error: insertError } = await supabase
+    async function saveProducts() {
+        // 1. نُبقي على الحفظ المحلي كإجراء احتياطي ولتسريع تحميل الواجهة
+        localStorage.setItem('store_products', JSON.stringify(products));
+    
+        // 2. الحفظ والتحديث في قاعدة بيانات Supabase
+        try {
+            const { data, error } = await supabase
                 .from('products')
-                .insert(products);
-                
-            if (insertError) throw insertError;
+                .upsert(products); // تقوم بالإضافة (Insert) أو التحديث (Update) بناءً على الـ id
+    
+            if (error) {
+                throw error;
+            }
+    
+            console.log('✅ تم حفظ/تحديث المنتجات في قاعدة البيانات بنجاح');
+            
+        } catch (error) {
+            console.error('❌ حدث خطأ أثناء الحفظ في قاعدة البيانات:', error);
+            alert('حدث خطأ أثناء حفظ التعديلات في السيرفر، يرجى المحاولة مرة أخرى.');
         }
-        
-        console.log('✅ تم حفظ المنتجات في Supabase');
-    } catch (error) {
-        console.error('❌ فشل حفظ المنتجات في Supabase:', error);
     }
 }
 
 function updateProductsStats() {
-    const totalSpan = document.getElementById('totalProducts');
-    if (totalSpan) totalSpan.innerText = products.length;
+    document.getElementById('totalProducts').innerText = products.length;
 }
 
 function renderProductsList() {
@@ -173,29 +143,25 @@ function renderProductsList() {
     container.innerHTML = html;
 }
 
-async function toggleStock(productId) {
+function toggleStock(productId) {
     const product = products.find(p => p.id === productId);
     if (product) {
         product.inStock = !product.inStock;
-        saveProductsToLocal(products);
-        await saveProductsToSupabase();
+        saveProducts();
         renderProductsList();
     }
 }
 
-async function deleteProduct(productId) {
-    if (confirm('⚠️ هل أنت متأكد من حذف هذا المنتج؟')) {
-        const productName = products.find(p => p.id === productId)?.name;
+function deleteProduct(productId) {
+    if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
         products = products.filter(p => p.id !== productId);
-        saveProductsToLocal(products);
-        await saveProductsToSupabase();
+        saveProducts();
         renderProductsList();
         updateProductsStats();
-        alert(`✅ تم حذف المنتج "${productName}" بنجاح`);
     }
 }
 
-async function addNewProduct() {
+function addNewProduct() {
     const name = document.getElementById('newProductName').value.trim();
     const oldPrice = parseInt(document.getElementById('newOldPrice').value);
     const price = parseInt(document.getElementById('newPrice').value);
@@ -203,12 +169,12 @@ async function addNewProduct() {
     const description = document.getElementById('newDescription').value.trim();
     
     if (!name || !price) {
-        alert('⚠️ الرجاء تعبئة اسم المنتج والسعر');
+        alert('الرجاء تعبئة اسم المنتج والسعر');
         return;
     }
     
     const newId = Date.now();
-    const newProduct = {
+    products.push({
         id: newId,
         name: name,
         oldPrice: oldPrice || price + 100,
@@ -217,12 +183,9 @@ async function addNewProduct() {
         description: description || 'وصف المنتج',
         inStock: true,
         hasVip: true
-    };
+    });
     
-    products.push(newProduct);
-    saveProductsToLocal(products);
-    await saveProductsToSupabase();
-    
+    saveProducts();
     renderProductsList();
     updateProductsStats();
     
@@ -232,117 +195,48 @@ async function addNewProduct() {
     document.getElementById('newImageUrl').value = '';
     document.getElementById('newDescription').value = '';
     
-    alert(`✅ تم إضافة المنتج "${name}" بنجاح!`);
+    alert('✅ تم إضافة المنتج بنجاح!');
     showTab('products');
 }
 
 // ================================================
-// 📋 إدارة الطلبات (Supabase + LocalStorage)
+// 📋 إدارة الطلبات
 // ================================================
 let orders = [];
-let lastOrderCount = 0;
 
-async function loadOrdersData() {
-    try {
-        const { data, error } = await supabase
-            .from('orders')
-            .select('*')
-            .order('id', { ascending: false });
-            
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-            orders = data;
-            saveOrdersToLocal(orders);
-        } else {
-            loadOrdersFromLocal();
-        }
-        updateOrdersStats();
-        renderOrdersList();
-        checkForNewOrders();
-    } catch (error) {
-        console.error('❌ فشل تحميل الطلبات من Supabase:', error);
-        loadOrdersFromLocal();
-        renderOrdersList();
-    }
-}
-
-function loadOrdersFromLocal() {
+function loadOrdersData() {
     const stored = localStorage.getItem('admin_orders');
     if (stored) {
         orders = JSON.parse(stored);
     } else {
         orders = [];
-        saveOrdersToLocal(orders);
+        saveOrders();
     }
+    updateOrdersStats();
+    renderOrdersList();
+    
+    // التحقق من الطلبات الجديدة وإرسال إشعار
+    checkForNewOrders();
 }
 
-function saveOrdersToLocal(ordersToSave) {
-    localStorage.setItem('admin_orders', JSON.stringify(ordersToSave));
-}
-
-async function saveOrderToSupabase(order) {
-    try {
-        const { error } = await supabase
-            .from('orders')
-            .insert([order]);
-            
-        if (error) throw error;
-        console.log('✅ تم حفظ الطلب في Supabase');
-        return true;
-    } catch (error) {
-        console.error('❌ فشل حفظ الطلب في Supabase:', error);
-        return false;
-    }
-}
-
-async function updateOrderStatusInSupabase(orderId, newStatus) {
-    try {
-        const { error } = await supabase
-            .from('orders')
-            .update({ status: newStatus })
-            .eq('id', orderId);
-            
-        if (error) throw error;
-        console.log('✅ تم تحديث حالة الطلب في Supabase');
-        return true;
-    } catch (error) {
-        console.error('❌ فشل تحديث حالة الطلب:', error);
-        return false;
-    }
-}
-
-async function deleteOrderFromSupabase(orderId) {
-    try {
-        const { error } = await supabase
-            .from('orders')
-            .delete()
-            .eq('id', orderId);
-            
-        if (error) throw error;
-        console.log('✅ تم حذف الطلب من Supabase');
-        return true;
-    } catch (error) {
-        console.error('❌ فشل حذف الطلب من Supabase:', error);
-        return false;
-    }
+function saveOrders() {
+    localStorage.setItem('admin_orders', JSON.stringify(orders));
 }
 
 function updateOrdersStats() {
-    const totalSpan = document.getElementById('totalOrders');
-    const pendingSpan = document.getElementById('pendingOrders');
-    if (totalSpan) totalSpan.innerText = orders.length;
-    if (pendingSpan) {
-        const pendingCount = orders.filter(o => o.status === 'pending').length;
-        pendingSpan.innerText = pendingCount;
-    }
+    document.getElementById('totalOrders').innerText = orders.length;
+    const pendingCount = orders.filter(o => o.status === 'pending').length;
+    document.getElementById('pendingOrders').innerText = pendingCount;
 }
+
+// تتبع الطلبات الجديدة
+let lastOrderCount = 0;
 
 function checkForNewOrders() {
     const currentCount = orders.length;
     if (currentCount > lastOrderCount) {
         const newOrder = orders[0];
-        if (newOrder && newOrder.status === 'pending') {
+        if (newOrder.status === 'pending') {
             sendEmailNotification(newOrder, 'new_order');
         }
     }
@@ -368,7 +262,7 @@ function renderOrdersList() {
         
         html += `
             <tr>
-                <td>${order.timestamp || order.date || '-'}</td>
+                <td>${order.date}</td>
                 <td>${order.name}</td>
                 <td>${order.mobile}</td>
                 <td>${order.city}</td>
@@ -396,8 +290,7 @@ async function updateOrderStatus(orderId, newStatus) {
     if (order) {
         const oldStatus = order.status;
         order.status = newStatus;
-        saveOrdersToLocal(orders);
-        await updateOrderStatusInSupabase(orderId, newStatus);
+        saveOrders();
         renderOrdersList();
         updateOrdersStats();
         
@@ -408,18 +301,12 @@ async function updateOrderStatus(orderId, newStatus) {
     }
 }
 
-async function deleteOrder(orderId) {
-    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الطلب؟')) return;
-    
-    const success = await deleteOrderFromSupabase(orderId);
-    if (success) {
+function deleteOrder(orderId) {
+    if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
         orders = orders.filter(o => o.id !== orderId);
-        saveOrdersToLocal(orders);
+        saveOrders();
         renderOrdersList();
         updateOrdersStats();
-        alert('✅ تم حذف الطلب بنجاح');
-    } else {
-        alert('❌ فشل حذف الطلب');
     }
 }
 
@@ -427,26 +314,22 @@ async function deleteOrder(orderId) {
 // 🔄 علامات التبويب
 // ================================================
 function showTab(tabName) {
-    const productsTab = document.getElementById('productsTab');
-    const addProductTab = document.getElementById('addProductTab');
-    const ordersTab = document.getElementById('ordersTab');
-    
-    if (productsTab) productsTab.classList.remove('active');
-    if (addProductTab) addProductTab.classList.remove('active');
-    if (ordersTab) ordersTab.classList.remove('active');
+    document.getElementById('productsTab').classList.remove('active');
+    document.getElementById('addProductTab').classList.remove('active');
+    document.getElementById('ordersTab').classList.remove('active');
     
     document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
     
     if (tabName === 'products') {
-        if (productsTab) productsTab.classList.add('active');
-        document.querySelectorAll('.admin-tab-btn')[0]?.classList.add('active');
+        document.getElementById('productsTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:first-child').classList.add('active');
         renderProductsList();
     } else if (tabName === 'add-product') {
-        if (addProductTab) addProductTab.classList.add('active');
-        document.querySelectorAll('.admin-tab-btn')[1]?.classList.add('active');
+        document.getElementById('addProductTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:nth-child(2)').classList.add('active');
     } else if (tabName === 'orders') {
-        if (ordersTab) ordersTab.classList.add('active');
-        document.querySelectorAll('.admin-tab-btn')[2]?.classList.add('active');
+        document.getElementById('ordersTab').classList.add('active');
+        document.querySelector('.admin-tab-btn:nth-child(3)').classList.add('active');
         renderOrdersList();
     }
 }
@@ -458,7 +341,7 @@ function loadAllData() {
 
 // تحديث الطلبات كل 5 ثوانٍ
 setInterval(() => {
-    if (document.getElementById('adminPanel') && document.getElementById('adminPanel').style.display === 'block') {
+    if (document.getElementById('adminPanel').style.display === 'block') {
         loadOrdersData();
     }
 }, 5000);
