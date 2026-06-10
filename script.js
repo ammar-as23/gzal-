@@ -1,15 +1,15 @@
 // ================================================
 // 🌐 إعدادات Supabase
 // ================================================
-const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co'; // تم تصحيح الرابط
+const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تغيير اسم المتغير إلى supabaseDb لتجنب التعارض الذي يوقف السكربت
+// تهيئة عميل Supabase
 let supabaseDb;
 try {
     supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 } catch (error) {
-    console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها في ملف HTML!', error);
+    console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها بشكل صحيح!', error);
 }
 
 // ================================================
@@ -18,32 +18,30 @@ try {
 let products = [];
 let cart = [];
 
-// تحويل الدالة إلى async لجلب البيانات من قاعدة البيانات
+// جلب المنتجات من قاعدة البيانات
 async function loadProducts() {
     try {
         const { data, error } = await supabaseDb
             .from('products')
             .select('*')
-            .order('price', { ascending: true }); // ترتيب حسب السعر (اختياري)
+            .order('price', { ascending: true });
 
         if (error) throw error;
 
         if (data && data.length > 0) {
             products = data;
-            // حفظ نسخة احتياطية محلياً لتسريع التحميل مستقبلاً
             localStorage.setItem('store_products', JSON.stringify(products));
         } else {
             fallbackLoadProducts();
         }
         renderStoreProducts();
     } catch (error) {
-        console.error('❌ فشل تحميل المنتجات من السيرفر:', error);
-        fallbackLoadProducts(); // في حال فشل الاتصال، استخدم النسخة المحلية
+        console.error('❌ فشل تحميل المنتجات:', error);
+        fallbackLoadProducts();
         renderStoreProducts();
     }
 }
 
-// دالة طوارئ لجلب المنتجات إذا كان هناك مشكلة في الإنترنت أو السيرفر
 function fallbackLoadProducts() {
     const stored = localStorage.getItem('store_products');
     if (stored) {
@@ -79,19 +77,11 @@ function renderStoreProducts() {
                 <div class="price">${p.price} <span>ريال</span></div>
                 <div class="vip-option">
                     <div class="vip-title"><i class="fas fa-crown"></i> باقة VIP الذهبية</div>
-                    <ul class="vip-features">
-                        <li>فتح القنوات المشفرة</li>
-                        <li>فتح bein sport max</li>
-                        <li>لا يحتاج إنترنت سريع</li>
-                        <li>جودة 4K</li>
-                    </ul>
-                    <div class="vip-price">+ 100 ريال</div>
                     <div class="checkbox-container">
                         <label><i class="fas fa-gem"></i> إضافة باقة VIP</label>
                         <input type="checkbox" class="vip${p.id}" onchange="updateDevicePriceInCart(${p.id})">
                     </div>
                 </div>
-                <div class="free-delivery"><i class="fas fa-truck-fast"></i> توصيل مجاني</div>
                 <button class="add-to-cart-btn" onclick="addToCart(${p.id}, '${p.name}', ${p.price})" ${!p.inStock ? 'disabled' : ''}>
                     <i class="fas fa-cart-plus"></i> إضافة إلى السلة
                 </button>
@@ -106,10 +96,7 @@ function renderStoreProducts() {
 // ================================================
 function addToCart(productId, name, basePrice) {
     const product = products.find(p => p.id === productId);
-    if (!product || !product.inStock) {
-        alert('⚠️ هذا المنتج غير متوفر حالياً');
-        return;
-    }
+    if (!product || !product.inStock) return;
     
     const checkbox = document.querySelector(`.vip${productId}`);
     const hasVip = checkbox ? checkbox.checked : false;
@@ -121,57 +108,8 @@ function addToCart(productId, name, basePrice) {
         existingItem.quantity += 1;
         existingItem.price = finalPrice * existingItem.quantity;
     } else {
-        cart.push({ 
-            id: productId, 
-            name: name, 
-            unitPrice: finalPrice,
-            price: finalPrice, 
-            quantity: 1,
-            hasVip: hasVip 
-        });
+        cart.push({ id: productId, name: name, unitPrice: finalPrice, price: finalPrice, quantity: 1, hasVip: hasVip });
     }
-    
-    renderCart();
-}
-
-function removeFromCart(productId, hasVip) {
-    const index = cart.findIndex(item => item.id === productId && item.hasVip === hasVip);
-    if (index !== -1) {
-        if (cart[index].quantity > 1) {
-            cart[index].quantity -= 1;
-            cart[index].price = cart[index].unitPrice * cart[index].quantity;
-        } else {
-            cart.splice(index, 1);
-        }
-    }
-    renderCart();
-}
-
-function removeAllFromCart(productId, hasVip) {
-    cart = cart.filter(item => !(item.id === productId && item.hasVip === hasVip));
-    renderCart();
-}
-
-function updateDevicePriceInCart(productId) {
-    const checkbox = document.querySelector(`.vip${productId}`);
-    if (!checkbox) return;
-    
-    const hasVip = checkbox.checked;
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-    
-    const unitPrice = product.price + (hasVip ? 100 : 0);
-    
-    cart.forEach(item => {
-        if (item.id === productId) {
-            const oldHasVip = item.hasVip;
-            if (oldHasVip !== hasVip) {
-                item.hasVip = hasVip;
-                item.unitPrice = unitPrice;
-                item.price = unitPrice * item.quantity;
-            }
-        }
-    });
     renderCart();
 }
 
@@ -181,7 +119,7 @@ function renderCart() {
     if (!cartContainer) return;
     
     if (cart.length === 0) {
-        cartContainer.innerHTML = '<div class="empty-cart"><i class="fas fa-basket-shopping"></i> السلة فارغة. أضف أجهزة من الأعلى</div>';
+        cartContainer.innerHTML = '<div class="empty-cart">السلة فارغة</div>';
         if (totalSpan) totalSpan.innerText = '0';
         return;
     }
@@ -190,32 +128,69 @@ function renderCart() {
     let html = '';
     cart.forEach(item => {
         total += item.price;
-        const vipBadge = item.hasVip ? ' <span style="color:#B8860B;">+ باقة VIP 👑</span>' : '';
-        html += `
-            <div class="cart-item">
-                <div class="cart-item-info">
-                    <div class="cart-item-name">${item.name}${vipBadge}</div>
-                    <div class="cart-item-price">
-                        ${item.unitPrice} ريال × ${item.quantity} = <strong>${item.price} ريال</strong>
-                    </div>
-                </div>
-                <div style="display:flex;gap:8px;">
-                    <button class="remove-item" onclick="removeFromCart(${item.id}, ${item.hasVip})" style="background:#fef3c7; color:#92400e;">
-                        <i class="fas fa-minus"></i> إنقاص
-                    </button>
-                    <button class="remove-item" onclick="removeAllFromCart(${item.id}, ${item.hasVip})">
-                        <i class="fas fa-trash"></i> حذف الكل
-                    </button>
-                </div>
-            </div>
-        `;
+        html += `<div class="cart-item">${item.name} × ${item.quantity} = ${item.price} ريال</div>`;
     });
     cartContainer.innerHTML = html;
     if (totalSpan) totalSpan.innerText = total;
 }
 
 // ================================================
-// 📋 إرسال الطلب إلى قاعدة بيانات Supabase
+// 📋 إرسال الطلب (بدون ID يدوي)
 // ================================================
 async function saveOrderToDatabase(orderData) {
-    // تم حذف الـ id لكي يتم توليده تلقائياً من
+    // نرسل البيانات فقط، وقاعدة البيانات ستتولى إنشاء الـ ID تلقائياً
+    const newOrder = {
+        name: orderData.name,
+        mobile: orderData.mobile,
+        city: orderData.city,
+        items: orderData.items,
+        total: orderData.total,
+        notes: orderData.notes,
+        status: 'pending' 
+    };
+    
+    try {
+        const { error } = await supabaseDb
+            .from('orders')
+            .insert([newOrder]);
+            
+        if (error) throw error;
+        return true;
+    } catch (error) {
+        console.error('❌ حدث خطأ:', error);
+        return false;
+    }
+}
+
+// ================================================
+// 📝 معالجة النموذج
+// ================================================
+document.addEventListener('DOMContentLoaded', function() {
+    loadProducts();
+    
+    const orderForm = document.getElementById('orderFormElement');
+    if (orderForm) {
+        orderForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const orderData = {
+                name: document.getElementById('fullName').value,
+                mobile: document.getElementById('mobile').value,
+                city: document.getElementById('city').value,
+                items: cart.map(i => i.name).join(' | '),
+                total: cart.reduce((s, i) => s + i.price, 0),
+                notes: document.getElementById('notes').value
+            };
+            
+            const isSuccess = await saveOrderToDatabase(orderData);
+            if (isSuccess) {
+                alert('✅ تم إرسال الطلب!');
+                orderForm.reset();
+                cart = [];
+                renderCart();
+            } else {
+                alert('❌ فشل الإرسال.');
+            }
+        });
+    }
+});
