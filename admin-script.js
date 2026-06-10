@@ -1,27 +1,25 @@
 // ================================================
-// 🌐 إعدادات Supabase
-// ================================================
-
-
-
-// تهيئة عميل Supabase
-// const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ================================================
 // 🔐 كلمة السر
 // ================================================
 const ADMIN_PASSWORD = "admin123";
 
+// ================================================
+// 🌐 إعدادات Supabase
+// ================================================
 const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
+
+// تهيئة عميل Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ================================================
-// 📧 إعدادات EmailJS (غيّر هذه القيم بعد التسجيل في EmailJS)
+// 📧 إعدادات EmailJS
 // ================================================
-// 🔴 قم بالتسجيل في https://www.emailjs.com ثم ضع القيم التالية:
-const EMAILJS_PUBLIC_KEY = "mOOnLVPcEPY9R6mY3";     // 🔴 غير هذا
-const EMAILJS_SERVICE_ID = "service_bo95msl";    // 🔴 غير هذا
-const EMAILJS_TEMPLATE_ID = "template_cl5kubq";  // 🔴 غير هذا
-const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";       // 🔴 بريدك أنت
+const EMAILJS_PUBLIC_KEY = "mOOnLVPcEPY9R6mY3";     
+const EMAILJS_SERVICE_ID = "service_bo95msl";    
+const EMAILJS_TEMPLATE_ID = "template_cl5kubq";  
+const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";       
+
 // تحميل EmailJS
 emailjs.init(EMAILJS_PUBLIC_KEY);
 
@@ -48,7 +46,7 @@ async function sendEmailNotification(orderData, action) {
         order_items: orderData.items,
         order_total: orderData.total,
         order_notes: orderData.notes || 'لا توجد ملاحظات',
-        order_date: orderData.date,
+        order_date: orderData.timestamp || orderData.date,
         action: action,
         site_url: window.location.origin
     };
@@ -62,55 +60,34 @@ async function sendEmailNotification(orderData, action) {
 }
 
 // ================================================
-// 📦 إدارة المنتجات
+// 📦 إدارة المنتجات (متصلة بقاعدة البيانات)
 // ================================================
 let products = [];
 
-function loadProductsData() {
-    const stored = localStorage.getItem('store_products');
-    if (stored) {
-        products = JSON.parse(stored);
-    } else {
-        products = [
-            { id: 1, name: "Gazal 5050 Super", oldPrice: 399, price: 199, image: "https://i.postimg.cc/9QQ2PFrd/photo-2026-06-09-14-24-06.jpg", description: "الجهاز الأكثر مبيعاً والأرخص! دقة 4K.", inStock: true, hasVip: true },
-            { id: 2, name: "Gazal 3030 Forever Super", oldPrice: 450, price: 330, image: "https://i.postimg.cc/66PCxyNR/photo-2026-06-09-14-23-36.jpg", description: "فائق السرعة، 2GB رام، 16GB فلاش.", inStock: true, hasVip: true },
-            { id: 3, name: "Gazal Linux Turbo 4K 5G", oldPrice: 599, price: 499, image: "https://i.postimg.cc/m2cNP7Sk/photo-2026-06-09-14-23-23.jpg", description: "لينكس، 5G، دقة 4K فائقة.", inStock: true, hasVip: true },
-            { id: 4, name: "Gazal 8080 Super", oldPrice: 499, price: 399, image: "https://i.postimg.cc/SQnD90SQ/Whats-App-Image-2026-06-09-at-11-44-17-PM-(1).jpg", description: "فائق الأداء، أحدث إصدار.", inStock: true, hasVip: true }
-        ];
-        saveProducts();
-    }
-    updateProductsStats();
-    renderProductsList();
-}
+// قراءة المنتجات من قاعدة البيانات
+async function loadProductsData() {
+    try {
+        const { data, error } = await supabase
+            .from('products')
+            .select('*')
+            .order('price', { ascending: true });
 
-function saveProducts() {
-    //localStorage.setItem('store_products', JSON.stringify(products));
+        if (error) throw error;
 
-    async function saveProducts() {
-        // 1. نُبقي على الحفظ المحلي كإجراء احتياطي ولتسريع تحميل الواجهة
-        localStorage.setItem('store_products', JSON.stringify(products));
-    
-        // 2. الحفظ والتحديث في قاعدة بيانات Supabase
-        try {
-            const { data, error } = await supabase
-                .from('products')
-                .upsert(products); // تقوم بالإضافة (Insert) أو التحديث (Update) بناءً على الـ id
-    
-            if (error) {
-                throw error;
-            }
-    
-            console.log('✅ تم حفظ/تحديث المنتجات في قاعدة البيانات بنجاح');
-            
-        } catch (error) {
-            console.error('❌ حدث خطأ أثناء الحفظ في قاعدة البيانات:', error);
-            alert('حدث خطأ أثناء حفظ التعديلات في السيرفر، يرجى المحاولة مرة أخرى.');
+        if (data) {
+            products = data;
         }
+        updateProductsStats();
+        renderProductsList();
+    } catch (error) {
+        console.error('❌ فشل تحميل المنتجات:', error);
+        alert('حدث خطأ أثناء جلب المنتجات من السيرفر.');
     }
 }
 
 function updateProductsStats() {
-    document.getElementById('totalProducts').innerText = products.length;
+    const totalSpan = document.getElementById('totalProducts');
+    if (totalSpan) totalSpan.innerText = products.length;
 }
 
 function renderProductsList() {
@@ -144,25 +121,57 @@ function renderProductsList() {
     container.innerHTML = html;
 }
 
-function toggleStock(productId) {
+// تعديل حالة المخزون في قاعدة البيانات
+async function toggleStock(productId) {
     const product = products.find(p => p.id === productId);
     if (product) {
-        product.inStock = !product.inStock;
-        saveProducts();
+        const newStockStatus = !product.inStock;
+        
+        // التحديث في الواجهة فوراً لتجربة مستخدم سريعة
+        product.inStock = newStockStatus;
         renderProductsList();
+        
+        // التحديث في السيرفر
+        try {
+            const { error } = await supabase
+                .from('products')
+                .update({ inStock: newStockStatus })
+                .eq('id', productId);
+                
+            if (error) throw error;
+        } catch (error) {
+            console.error('❌ فشل تحديث المخزون:', error);
+            // إرجاع الحالة القديمة إذا فشل السيرفر
+            product.inStock = !newStockStatus;
+            renderProductsList();
+        }
     }
 }
 
-function deleteProduct(productId) {
+// حذف منتج من قاعدة البيانات
+async function deleteProduct(productId) {
     if (confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
-        products = products.filter(p => p.id !== productId);
-        saveProducts();
-        renderProductsList();
-        updateProductsStats();
+        try {
+            const { error } = await supabase
+                .from('products')
+                .delete()
+                .eq('id', productId);
+                
+            if (error) throw error;
+            
+            // تحديث الواجهة بعد نجاح الحذف
+            products = products.filter(p => p.id !== productId);
+            renderProductsList();
+            updateProductsStats();
+        } catch (error) {
+            console.error('❌ فشل الحذف:', error);
+            alert('حدث خطأ أثناء محاولة حذف المنتج من السيرفر.');
+        }
     }
 }
 
-function addNewProduct() {
+// إضافة منتج جديد لقاعدة البيانات
+async function addNewProduct() {
     const name = document.getElementById('newProductName').value.trim();
     const oldPrice = parseInt(document.getElementById('newOldPrice').value);
     const price = parseInt(document.getElementById('newPrice').value);
@@ -174,9 +183,8 @@ function addNewProduct() {
         return;
     }
     
-    const newId = Date.now();
-    products.push({
-        id: newId,
+    const newProduct = {
+        id: Date.now(),
         name: name,
         oldPrice: oldPrice || price + 100,
         price: price,
@@ -184,60 +192,80 @@ function addNewProduct() {
         description: description || 'وصف المنتج',
         inStock: true,
         hasVip: true
-    });
+    };
     
-    saveProducts();
-    renderProductsList();
-    updateProductsStats();
-    
-    document.getElementById('newProductName').value = '';
-    document.getElementById('newOldPrice').value = '';
-    document.getElementById('newPrice').value = '';
-    document.getElementById('newImageUrl').value = '';
-    document.getElementById('newDescription').value = '';
-    
-    alert('✅ تم إضافة المنتج بنجاح!');
-    showTab('products');
+    try {
+        const { error } = await supabase
+            .from('products')
+            .insert([newProduct]);
+            
+        if (error) throw error;
+        
+        // تحديث الواجهة
+        products.push(newProduct);
+        renderProductsList();
+        updateProductsStats();
+        
+        // تصفير الحقول
+        document.getElementById('newProductName').value = '';
+        document.getElementById('newOldPrice').value = '';
+        document.getElementById('newPrice').value = '';
+        document.getElementById('newImageUrl').value = '';
+        document.getElementById('newDescription').value = '';
+        
+        alert('✅ تم إضافة المنتج بنجاح!');
+        showTab('products');
+        
+    } catch (error) {
+        console.error('❌ فشل الإضافة:', error);
+        alert('حدث خطأ أثناء محاولة إضافة المنتج للسيرفر.');
+    }
 }
 
 // ================================================
-// 📋 إدارة الطلبات
+// 📋 إدارة الطلبات (متصلة بقاعدة البيانات)
 // ================================================
 let orders = [];
+let lastOrderCount = 0;
 
-function loadOrdersData() {
-    const stored = localStorage.getItem('admin_orders');
-    if (stored) {
-        orders = JSON.parse(stored);
-    } else {
-        orders = [];
-        saveOrders();
+// قراءة الطلبات من قاعدة البيانات
+async function loadOrdersData() {
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error) throw error;
+
+        if (data) {
+            orders = data;
+        }
+        
+        updateOrdersStats();
+        renderOrdersList();
+        checkForNewOrders();
+        
+    } catch (error) {
+        console.error('❌ فشل تحميل الطلبات:', error);
     }
-    updateOrdersStats();
-    renderOrdersList();
-    
-    // التحقق من الطلبات الجديدة وإرسال إشعار
-    checkForNewOrders();
-}
-
-function saveOrders() {
-    localStorage.setItem('admin_orders', JSON.stringify(orders));
 }
 
 function updateOrdersStats() {
-    document.getElementById('totalOrders').innerText = orders.length;
-    const pendingCount = orders.filter(o => o.status === 'pending').length;
-    document.getElementById('pendingOrders').innerText = pendingCount;
+    const totalSpan = document.getElementById('totalOrders');
+    const pendingSpan = document.getElementById('pendingOrders');
+    if (totalSpan) totalSpan.innerText = orders.length;
+    if (pendingSpan) {
+        const pendingCount = orders.filter(o => o.status === 'pending').length;
+        pendingSpan.innerText = pendingCount;
+    }
 }
-
-// تتبع الطلبات الجديدة
-let lastOrderCount = 0;
 
 function checkForNewOrders() {
     const currentCount = orders.length;
-    if (currentCount > lastOrderCount) {
+    if (currentCount > lastOrderCount && lastOrderCount !== 0) {
         const newOrder = orders[0];
-        if (newOrder.status === 'pending') {
+        if (newOrder && newOrder.status === 'pending') {
             sendEmailNotification(newOrder, 'new_order');
         }
     }
@@ -263,9 +291,9 @@ function renderOrdersList() {
         
         html += `
             <tr>
-                <td>${order.date}</td>
+                <td>${order.timestamp || order.date || '-'}</td>
                 <td>${order.name}</td>
-                <td>${order.mobile}</td>
+                <td dir="ltr" style="text-align:right;">${order.mobile}</td>
                 <td>${order.city}</td>
                 <td style="max-width:200px;word-break:break-word;">${order.items}</td>
                 <td>${order.total} ريال</td>
@@ -286,63 +314,18 @@ function renderOrdersList() {
     tbody.innerHTML = html;
 }
 
+// تحديث حالة الطلب في قاعدة البيانات
 async function updateOrderStatus(orderId, newStatus) {
     const order = orders.find(o => o.id === orderId);
     if (order) {
         const oldStatus = order.status;
-        order.status = newStatus;
-        saveOrders();
-        renderOrdersList();
-        updateOrdersStats();
         
-        if (oldStatus === 'pending' && newStatus !== 'pending') {
-            await sendEmailNotification(order, newStatus);
-            alert(`✅ تم ${newStatus === 'approved' ? 'قبول' : 'رفض'} الطلب وإرسال إشعار إلى البريد الإلكتروني`);
-        }
-    }
-}
-
-function deleteOrder(orderId) {
-    if (confirm('هل أنت متأكد من حذف هذا الطلب؟')) {
-        orders = orders.filter(o => o.id !== orderId);
-        saveOrders();
-        renderOrdersList();
-        updateOrdersStats();
-    }
-}
-
-// ================================================
-// 🔄 علامات التبويب
-// ================================================
-function showTab(tabName) {
-    document.getElementById('productsTab').classList.remove('active');
-    document.getElementById('addProductTab').classList.remove('active');
-    document.getElementById('ordersTab').classList.remove('active');
-    
-    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
-    
-    if (tabName === 'products') {
-        document.getElementById('productsTab').classList.add('active');
-        document.querySelector('.admin-tab-btn:first-child').classList.add('active');
-        renderProductsList();
-    } else if (tabName === 'add-product') {
-        document.getElementById('addProductTab').classList.add('active');
-        document.querySelector('.admin-tab-btn:nth-child(2)').classList.add('active');
-    } else if (tabName === 'orders') {
-        document.getElementById('ordersTab').classList.add('active');
-        document.querySelector('.admin-tab-btn:nth-child(3)').classList.add('active');
-        renderOrdersList();
-    }
-}
-
-function loadAllData() {
-    loadProductsData();
-    loadOrdersData();
-}
-
-// تحديث الطلبات كل 5 ثوانٍ
-setInterval(() => {
-    if (document.getElementById('adminPanel').style.display === 'block') {
-        loadOrdersData();
-    }
-}, 5000);
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ status: newStatus })
+                .eq('id', orderId);
+                
+            if (error) throw error;
+            
+            // التحديث في الوا
