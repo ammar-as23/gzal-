@@ -176,8 +176,8 @@ async function addNewProduct() {
         return;
     }
     
+    // إزالة الـ ID لتقوم قاعدة البيانات بتوليده تلقائياً (Auto Increment)
     const newProduct = {
-        id: Date.now(),
         name: name,
         oldPrice: oldPrice || price + 100,
         price: price,
@@ -188,13 +188,19 @@ async function addNewProduct() {
     };
     
     try {
-        const { error } = await supabaseDb
+        // إضافة select() في النهاية لإرجاع البيانات مع الـ ID الجديد
+        const { data, error } = await supabaseDb
             .from('products')
-            .insert([newProduct]);
+            .insert([newProduct])
+            .select();
             
         if (error) throw error;
         
-        products.push(newProduct);
+        // استخدام البيانات الراجعة من السيرفر لتحديث الواجهة بالـ ID الصحيح
+        if (data && data.length > 0) {
+            products.push(data[0]);
+        }
+        
         renderProductsList();
         updateProductsStats();
         
