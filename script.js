@@ -1,35 +1,26 @@
 // ================================================
-// 🌐 إعدادات Supabase
-// ================================================
-const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
-
-// تهيئة عميل Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ================================================
-// 📦 إدارة المنتجات
+// 📦 إدارة المنتجات (Products)
 // ================================================
 let products = [];
 let cart = [];
 
-async function loadProducts() {
-    try {
-        const { data, error } = await supabase
-            .from('products')
-            .select('*')
-            .order('price', { ascending: true }); // الأرخص أولاً
-            
-        if (error) throw error;
-        products = data;
-        renderStoreProducts();
-    } catch (error) {
-        console.error('❌ فشل تحميل المنتجات:', error);
-        // محاولة تحميل نسخة محلية كـ "طوارئ"
-        const stored = localStorage.getItem('store_products');
-        if (stored) products = JSON.parse(stored);
-        renderStoreProducts();
+function loadProducts() {
+    const stored = localStorage.getItem('store_products');
+    if (stored) {
+        products = JSON.parse(stored);
+    } else {
+        products = [
+            { id: 1, name: "Gazal 5050 Super", oldPrice: 399, price: 199, image: "https://i.postimg.cc/9QQ2PFrd/photo-2026-06-09-14-24-06.jpg", description: "الجهاز الأكثر مبيعاً والأرخص! دقة 4K.", inStock: true, hasVip: true },
+            { id: 2, name: "Gazal 3030 Forever Super", oldPrice: 450, price: 330, image: "https://i.postimg.cc/66PCxyNR/photo-2026-06-09-14-23-36.jpg", description: "فائق السرعة، 2GB رام، 16GB فلاش.", inStock: true, hasVip: true },
+            { id: 3, name: "Gazal Linux Turbo 4K 5G", oldPrice: 599, price: 499, image: "https://i.postimg.cc/m2cNP7Sk/photo-2026-06-09-14-23-23.jpg", description: "لينكس، 5G، دقة 4K فائقة.", inStock: true, hasVip: true },
+            { id: 4, name: "Gazal 8080 Super", oldPrice: 499, price: 399, image: "https://i.postimg.cc/SQnD90SQ/Whats-App-Image-2026-06-09-at-11-44-17-PM-(1).jpg", description: "فائق الأداء، أحدث إصدار.", inStock: true, hasVip: true }
+        ];
+        saveProducts();
     }
+}
+
+function saveProducts() {
+    localStorage.setItem('store_products', JSON.stringify(products));
 }
 
 function renderStoreProducts() {
@@ -37,7 +28,7 @@ function renderStoreProducts() {
     if (!container) return;
     
     if (products.length === 0) {
-        container.innerHTML = '<div style="text-align:center;padding:40px;">📭 جاري تحميل المنتجات...</div>';
+        container.innerHTML = '<div style="text-align:center;padding:40px;">📭 لا توجد منتجات حالياً</div>';
         return;
     }
     
@@ -191,33 +182,26 @@ function renderCart() {
 }
 
 // ================================================
-// 💾 حفظ الطلب في Supabase
+// 📋 إضافة طلب جديد إلى localStorage (ليظهر في الأدمن)
 // ================================================
-async function saveOrder(orderData) {
-    try {
-        const newOrder = {
-            id: Date.now(),
-            timestamp: new Date().toLocaleString('ar-SA'),
-            name: orderData.name,
-            mobile: orderData.mobile,
-            city: orderData.city,
-            items: orderData.items,
-            total: orderData.total,
-            notes: orderData.notes || '',
-            status: 'pending'
-        };
-        
-        const { error } = await supabase
-            .from('orders')
-            .insert([newOrder]);
-            
-        if (error) throw error;
-        console.log('✅ تم حفظ الطلب في Supabase');
-        return true;
-    } catch (error) {
-        console.error('❌ فشل حفظ الطلب:', error);
-        return false;
-    }
+function saveOrderToAdmin(orderData) {
+    let existingOrders = localStorage.getItem('admin_orders');
+    let orders = existingOrders ? JSON.parse(existingOrders) : [];
+    
+    const newOrder = {
+        id: Date.now(),
+        date: new Date().toLocaleString('ar-SA'),
+        name: orderData.name,
+        mobile: orderData.mobile,
+        city: orderData.city,
+        items: orderData.items,
+        total: orderData.total,
+        notes: orderData.notes,
+        status: 'pending'
+    };
+    
+    orders.unshift(newOrder);
+    localStorage.setItem('admin_orders', JSON.stringify(orders));
 }
 
 // ================================================
@@ -225,11 +209,12 @@ async function saveOrder(orderData) {
 // ================================================
 document.addEventListener('DOMContentLoaded', function() {
     loadProducts();
+    renderStoreProducts();
     renderCart();
     
     const orderForm = document.getElementById('orderFormElement');
     if (orderForm) {
-        orderForm.addEventListener('submit', async function(e) {
+        orderForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
             if (cart.length === 0) {
@@ -259,23 +244,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 notes: notes
             };
             
-            const success = await saveOrder(orderData);
+            // حفظ الطلب في localStorage ليظهر في صفحة الأدمن
+            saveOrderToAdmin(orderData);
             
-            if (success) {
-                const successMsg = document.getElementById('successMessage');
-                if (successMsg) {
-                    successMsg.style.display = 'block';
-                    setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
-                }
-                
-                document.getElementById('orderFormElement').reset();
-                cart = [];
-                renderCart();
-                
-                alert('✅ تم استلام طلبك بنجاح! سنتواصل معك قريباً.');
-            } else {
-                alert('❌ حدث خطأ في إرسال الطلب. الرجاء المحاولة مرة أخرى.');
+            const successMsg = document.getElementById('successMessage');
+            if (successMsg) {
+                successMsg.style.display = 'block';
+                setTimeout(() => { successMsg.style.display = 'none'; }, 5000);
             }
+            
+            document.getElementById('orderFormElement').reset();
+            cart = [];
+            renderCart();
+            
+            alert('✅ تم استلام طلبك بنجاح! سيتم التواصل معك قريباً.');
         });
     }
 });
