@@ -14,19 +14,22 @@ let products = [];
 let cart = [];
 
 async function loadProducts() {
+    console.log('🔄 جاري تحميل المنتجات من Supabase...');
     try {
         const { data, error } = await supabase
             .from('products')
             .select('*')
-            .order('price', { ascending: true }); // الأرخص أولاً
+            .order('price', { ascending: true });
             
         if (error) throw error;
+        
+        console.log('✅ تم تحميل المنتجات:', data);
         
         if (data && data.length > 0) {
             products = data;
         } else {
-            // إذا كانت قاعدة البيانات فارغة، نعرض رسالة
             products = [];
+            console.log('⚠️ لا توجد منتجات في قاعدة البيانات');
         }
         renderStoreProducts();
     } catch (error) {
@@ -228,6 +231,7 @@ async function saveOrder(orderData) {
 // 📝 معالجة نموذج الطلب
 // ================================================
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 تم تحميل الصفحة، جاري تحميل المنتجات...');
     loadProducts();
     renderCart();
     
