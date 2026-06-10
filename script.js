@@ -1,18 +1,11 @@
 // ================================================
 // 🌐 إعدادات Supabase (نفس إعدادات الأدمن)
 // ================================================
-const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
+const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تهيئة عميل Supabase
-let supabaseDb;
-try {
-    supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase initialized for client');
-} catch (error) {
-    console.error('❌ Supabase initialization error:', error);
-}
-
+// قمنا بتغيير الاسم إلى supabaseDb لتجنب أي تعارض مع المكتبة
+const supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ================================================
 // 📦 إدارة المنتجات
 // ================================================
