@@ -9,8 +9,13 @@ const ADMIN_PASSWORD = "admin123";
 const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تهيئة عميل Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// تهيئة عميل Supabase بشكل آمن (كي لا يعطل تسجيل الدخول إذا فشل)
+let supabase;
+try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (error) {
+    console.error('❌ تنبيه: مكتبة Supabase لم يتم تحميلها في ملف HTML!', error);
+}
 
 // ================================================
 // 📧 إعدادات EmailJS
@@ -20,9 +25,16 @@ const EMAILJS_SERVICE_ID = "service_bo95msl";
 const EMAILJS_TEMPLATE_ID = "template_cl5kubq";  
 const ADMIN_EMAIL = "ammarabusnaineh38@gmail.com";       
 
-// تحميل EmailJS
-emailjs.init(EMAILJS_PUBLIC_KEY);
+// تهيئة EmailJS بشكل آمن
+try {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+} catch (error) {
+    console.error('❌ تنبيه: مكتبة EmailJS لم يتم تحميلها في ملف HTML!', error);
+}
 
+// ================================================
+// 🔐 دالة تسجيل الدخول
+// ================================================
 function checkLogin() {
     const password = document.getElementById('adminPassword').value;
     if (password === ADMIN_PASSWORD) {
