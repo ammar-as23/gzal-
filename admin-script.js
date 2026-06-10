@@ -1,7 +1,33 @@
 // ================================================
-// 📦 إدارة المنتجات (نسخة محسنة)
+// 🔐 كلمة السر وإعدادات Supabase
 // ================================================
+const ADMIN_PASSWORD = "admin123";
+const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
+// تهيئة عميل Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let products = [];
+let orders = [];
+
+// ================================================
+// 🔐 تسجيل الدخول
+// ================================================
+function checkLogin() {
+    const password = document.getElementById('adminPassword').value;
+    if (password === ADMIN_PASSWORD) {
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        loadAllData();
+    } else {
+        alert('❌ كلمة السر غير صحيحة!');
+    }
+}
+
+// ================================================
+// 📦 إدارة المنتجات
+// ================================================
 async function loadProductsData() {
     try {
         const { data, error } = await supabase
@@ -20,7 +46,6 @@ async function loadProductsData() {
     }
 }
 
-// تحديث منتج موجود (مثل تغيير حالة التوفر)
 async function updateProductInSupabase(product) {
     try {
         const { error } = await supabase
@@ -45,7 +70,6 @@ async function updateProductInSupabase(product) {
     }
 }
 
-// إضافة منتج جديد
 async function addProductToSupabase(product) {
     try {
         const { error } = await supabase
@@ -61,7 +85,6 @@ async function addProductToSupabase(product) {
     }
 }
 
-// حذف منتج
 async function deleteProductFromSupabase(productId) {
     try {
         const { error } = await supabase
@@ -121,8 +144,6 @@ async function toggleStock(productId) {
         const success = await updateProductInSupabase(product);
         if (success) {
             renderProductsList();
-            // تحديث المتجر أيضاً (اختياري)
-            // await loadProductsData();
         } else {
             // التراجع عن التغيير إذا فشل
             product.inStock = !product.inStock;
@@ -158,7 +179,7 @@ async function addNewProduct() {
         return;
     }
     
-    const newId = Date.now(); // استخدام timestamp كمعرف فريد
+    const newId = Date.now();
     const newProduct = {
         id: newId,
         name: name,
@@ -189,4 +210,150 @@ async function addNewProduct() {
     } else {
         alert('❌ فشل إضافة المنتج');
     }
+}
+
+// ================================================
+// 📋 إدارة الطلبات
+// ================================================
+async function loadOrdersData() {
+    try {
+        const { data, error } = await supabase
+            .from('orders')
+            .select('*')
+            .order('id', { ascending: false });
+            
+        if (error) throw error;
+        orders = data;
+        updateOrdersStats();
+        renderOrdersList();
+    } catch (error) {
+        console.error('❌ فشل تحميل الطلبات:', error);
+    }
+}
+
+function updateOrdersStats() {
+    const totalSpan = document.getElementById('totalOrders');
+    const pendingSpan = document.getElementById('pendingOrders');
+    if (totalSpan) totalSpan.innerText = orders.length;
+    if (pendingSpan) {
+        const pendingCount = orders.filter(o => o.status === 'pending').length;
+        pendingSpan.innerText = pendingCount;
+    }
+}
+
+function renderOrdersList() {
+    const tbody = document.getElementById('ordersList');
+    if (!tbody) return;
+    
+    if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;">📭 لا توجد طلبات بعد</td></tr>';
+        return;
+    }
+    
+    let html = '';
+    orders.forEach(order => {
+        let statusClass = '';
+        let statusText = '';
+        if (order.status === 'pending') { statusClass = 'status-pending'; statusText = '⏳ قيد المراجعة'; }
+        else if (order.status === 'approved') { statusClass = 'status-approved'; statusText = '✅ تم القبول'; }
+        else if (order.status === 'rejected') { statusClass = 'status-rejected'; statusText = '❌ مرفوض'; }
+        
+        html += `
+            <tr>
+                <td>${order.timestamp || order.date || '-'}</td>
+                <td>${order.name}</td>
+                <td>${order.mobile}</td>
+                <td>${order.city}</td>
+                <td style="max-width:200px;word-break:break-word;">${order.items}</td>
+                <td>${order.total} ريال</td>
+                <td style="max-width:150px;word-break:break-word;">${order.notes || '-'}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                        ${order.status === 'pending' ? `
+                            <button class="btn-success" onclick="updateOrderStatus(${order.id}, 'approved')"><i class="fas fa-check"></i> قبول</button>
+                            <button class="btn-danger" onclick="updateOrderStatus(${order.id}, 'rejected')"><i class="fas fa-times"></i> رفض</button>
+                        ` : ''}
+                        <button class="btn-warning" onclick="deleteOrder(${order.id})"><i class="fas fa-trash"></i> حذف</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+    tbody.innerHTML = html;
+}
+
+async function updateOrderStatus(orderId, newStatus) {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+        order.status = newStatus;
+        
+        const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', orderId);
+            
+        if (error) {
+            console.error('❌ فشل تحديث الحالة:', error);
+            alert('حدث خطأ في تحديث الحالة');
+            return;
+        }
+        
+        renderOrdersList();
+        updateOrdersStats();
+        alert(`✅ تم ${newStatus === 'approved' ? 'قبول' : 'رفض'} الطلب بنجاح`);
+    }
+}
+
+async function deleteOrder(orderId) {
+    if (!confirm('⚠️ هل أنت متأكد من حذف هذا الطلب؟')) return;
+    
+    const { error } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderId);
+        
+    if (error) {
+        console.error('❌ فشل حذف الطلب:', error);
+        alert('حدث خطأ في حذف الطلب');
+        return;
+    }
+    
+    orders = orders.filter(o => o.id !== orderId);
+    renderOrdersList();
+    updateOrdersStats();
+    alert('✅ تم حذف الطلب بنجاح');
+}
+
+// ================================================
+// 🔄 علامات التبويب
+// ================================================
+function showTab(tabName) {
+    const productsTab = document.getElementById('productsTab');
+    const addProductTab = document.getElementById('addProductTab');
+    const ordersTab = document.getElementById('ordersTab');
+    
+    if (productsTab) productsTab.classList.remove('active');
+    if (addProductTab) addProductTab.classList.remove('active');
+    if (ordersTab) ordersTab.classList.remove('active');
+    
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (tabName === 'products') {
+        if (productsTab) productsTab.classList.add('active');
+        document.querySelectorAll('.admin-tab-btn')[0]?.classList.add('active');
+        renderProductsList();
+    } else if (tabName === 'add-product') {
+        if (addProductTab) addProductTab.classList.add('active');
+        document.querySelectorAll('.admin-tab-btn')[1]?.classList.add('active');
+    } else if (tabName === 'orders') {
+        if (ordersTab) ordersTab.classList.add('active');
+        document.querySelectorAll('.admin-tab-btn')[2]?.classList.add('active');
+        renderOrdersList();
+    }
+}
+
+function loadAllData() {
+    loadProductsData();
+    loadOrdersData();
 }
