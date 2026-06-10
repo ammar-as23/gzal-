@@ -2,7 +2,7 @@
 // 🌐 إعدادات Supabase
 // ================================================
 const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhsdWplaGpvcmljbXN1ZmNta3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwOTQ4MjgsImV4cCI6MjA5NjY3MDgyOH0.Fto1d0KBiObAliQQddKkKYqOc4L6KkiXDy5bYSZww0w';
+const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
 // تهيئة عميل Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
