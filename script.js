@@ -6,6 +6,38 @@ const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
 // قمنا بتغيير الاسم إلى supabaseDb لتجنب أي تعارض مع المكتبة
 const supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ================================================
+// 🔔 رسالة منبثقة (Toast Notification)
+// ================================================
+function showToast(message, type = 'success') {
+    // إنشاء عنصر الرسالة
+    const toast = document.createElement('div');
+    toast.className = 'toast-notification';
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    // إضافة الرسالة إلى الصفحة
+    document.body.appendChild(toast);
+    
+    // إظهار الرسالة مع حركة
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // إخفاء الرسالة بعد 2 ثانية
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => {
+            toast.remove();
+        }, 300);
+    }, 2000);
+}
+
 // ================================================
 // 📦 إدارة المنتجات
 // ================================================
@@ -114,7 +146,7 @@ function renderStoreProducts() {
 function addToCart(productId, name, basePrice) {
     const product = products.find(p => p.id === productId);
     if (!product || !product.inStock) {
-        alert('⚠️ هذا المنتج غير متوفر حالياً');
+        showToast('⚠️ هذا المنتج غير متوفر حالياً', 'error');
         return;
     }
     
@@ -127,6 +159,7 @@ function addToCart(productId, name, basePrice) {
     if (existingItem) {
         existingItem.quantity += 1;
         existingItem.price = finalPrice * existingItem.quantity;
+        showToast(`🛒 تم إضافة ${name} إلى السلة (الكمية: ${existingItem.quantity})`, 'success');
     } else {
         cart.push({ 
             id: productId, 
@@ -136,6 +169,7 @@ function addToCart(productId, name, basePrice) {
             quantity: 1,
             hasVip: hasVip 
         });
+        showToast(`✅ تم إضافة ${name} إلى السلة`, 'success');
     }
     renderCart();
 }
