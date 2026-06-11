@@ -1,21 +1,23 @@
 // ================================================
-// 🌐 إعدادات Supabase (نفس إعدادات الأدمن)
 // ================================================
-const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
+// 🌐 إعدادات Supabase
+// ================================================
+const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// قمنا بتغيير الاسم إلى supabaseDb لتجنب أي تعارض مع المكتبة
-const supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// تهيئة عميل Supabase
+let supabaseDb;
+try {
+    supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase initialized for client');
+} catch (error) {
+    console.error('❌ Supabase initialization error:', error);
+}
+
 // ================================================
-// 📦 إدارة المنتجات
-// ================================================
-let products = [];
-let cart = [];
-// ================================================
-// 🔔 رسالة منبثقة (Toast Notification)
+// 🔔 رسالة منبثقة (Toast Notification) ← أضف هذا الكود هنا
 // ================================================
 function showToast(message, type = 'success') {
-    // إنشاء عنصر الرسالة
     const toast = document.createElement('div');
     toast.className = 'toast-notification';
     toast.innerHTML = `
@@ -24,16 +26,10 @@ function showToast(message, type = 'success') {
             <span>${message}</span>
         </div>
     `;
-    
-    // إضافة الرسالة إلى الصفحة
     document.body.appendChild(toast);
-    
-    // إظهار الرسالة مع حركة
     setTimeout(() => {
         toast.classList.add('show');
     }, 10);
-    
-    // إخفاء الرسالة بعد 2 ثانية
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => {
@@ -41,6 +37,13 @@ function showToast(message, type = 'success') {
         }, 300);
     }, 2000);
 }
+
+// ================================================
+// 📦 إدارة المنتجات
+// ================================================
+let products = [];
+let cart = [];
+// ... باقي الكود
 // جلب المنتجات من قاعدة البيانات
 async function loadProducts() {
     if (!supabaseDb) {
