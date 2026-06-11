@@ -1,49 +1,17 @@
 // ================================================
+// 🌐 إعدادات Supabase (نفس إعدادات الأدمن)
 // ================================================
-// 🌐 إعدادات Supabase
-// ================================================
-const SUPABASE_URL = 'https://xlujehjoricsumfcmkyg.supabase.co';
+const SUPABASE_URL = 'https://xlujehjoricmsufcmkyg.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_Y2WMvN6Cdxs84tC7ZVqNrA_phvEJpdb';
 
-// تهيئة عميل Supabase
-let supabaseDb;
-try {
-    supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase initialized for client');
-} catch (error) {
-    console.error('❌ Supabase initialization error:', error);
-}
-
-// ================================================
-// 🔔 رسالة منبثقة (Toast Notification) ← أضف هذا الكود هنا
-// ================================================
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    toast.innerHTML = `
-        <div class="toast-content">
-            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-        toast.classList.add('show');
-    }, 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-            toast.remove();
-        }, 300);
-    }, 2000);
-}
-
+// قمنا بتغيير الاسم إلى supabaseDb لتجنب أي تعارض مع المكتبة
+const supabaseDb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ================================================
 // 📦 إدارة المنتجات
 // ================================================
 let products = [];
 let cart = [];
-// ... باقي الكود
+
 // جلب المنتجات من قاعدة البيانات
 async function loadProducts() {
     if (!supabaseDb) {
@@ -146,34 +114,9 @@ function renderStoreProducts() {
 function addToCart(productId, name, basePrice) {
     const product = products.find(p => p.id === productId);
     if (!product || !product.inStock) {
-        showToast('⚠️ هذا المنتج غير متوفر حالياً', 'error');
+        alert('⚠️ هذا المنتج غير متوفر حالياً');
         return;
     }
-    
-    const checkbox = document.querySelector(`.vip${productId}`);
-    const hasVip = checkbox ? checkbox.checked : false;
-    const finalPrice = basePrice + (hasVip ? 100 : 0);
-    
-    const existingItem = cart.find(item => item.id === productId && item.hasVip === hasVip);
-    
-    if (existingItem) {
-        existingItem.quantity += 1;
-        existingItem.price = finalPrice * existingItem.quantity;
-        showToast(`🛒 تم إضافة ${name} إلى السلة (الكمية: ${existingItem.quantity})`, 'success');
-    } else {
-        cart.push({ 
-            id: productId, 
-            name: name, 
-            unitPrice: finalPrice,
-            price: finalPrice, 
-            quantity: 1,
-            hasVip: hasVip 
-        });
-        showToast(`✅ تم إضافة ${name} إلى السلة`, 'success');
-    }
-    
-    renderCart();
-}
     
     const checkbox = document.querySelector(`.vip${productId}`);
     const hasVip = checkbox ? checkbox.checked : false;
